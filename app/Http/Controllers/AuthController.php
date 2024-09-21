@@ -18,7 +18,7 @@ class AuthController extends Controller
 
         $user = User::create($data);
 
-        $token = $user->createToken($request->name)->plainTextToken;
+        $token = $user->createToken($data['name'])->plainTextToken;
 
         return [
             'user' => $user,
@@ -27,10 +27,28 @@ class AuthController extends Controller
     }
     public function login(Request $request)
     {
-        return 'login';
+        $data = $request->validate([
+            'email' => ['required', 'email', 'exists:users'],
+            'password' => ['required']
+        ]);
+
+        $user = User::where('email', $data['email'])->first();
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return [
+                'message' => 'The provided credentials are incorrect.'
+            ];
+        }
+        $token = $user->createToken($user->name)->plainTextToken;
+        return [
+            'user' => $user,
+            'token' => $token
+        ];
     }
     public function logout(Request $request)
     {
-        return 'logout';
+        $request->user()->currentAccessToken()->delete();
+        return [
+            'message' => 'You are logged out'
+        ];
     }
 }
